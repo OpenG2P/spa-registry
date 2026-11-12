@@ -17,6 +17,7 @@ SET "domain_translation" = COALESCE("domain_translation"::jsonb, '{}'::jsonb) ||
   "priority": "Priority",
   "currency": "Currency",
   "account_validation_status": "Validation Status",
+  "record_status": "Status",
   "choose_financial_address_type": "Choose a financial address type",
   "financial_address_no_details": "This type has no extra details",
   "financial_address_no_details_for_type": "No extra details for this type",
