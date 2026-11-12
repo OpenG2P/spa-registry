@@ -42,7 +42,39 @@ class G2PRegisterDomainServiceFinancialAddress(G2PRegisterDomainService):
                         raise ValueError
                 except (TypeError, ValueError):
                     validation_error("Priority must be a whole number of 1 or higher")
+        await self._advise_ifsc_directory(records)
         await self._reject_duplicate_priorities(records)
+
+    async def _advise_ifsc_directory(self, records: list[dict]) -> None:
+        """IFSC format and bank prefix are enforced in the handler.
+
+        Whether the branch exists in Master Data is advisory: a miss or an
+        unreachable directory is logged and the write still proceeds.
+        """
+        ifscs = []
+        for record in records:
+            if record.get("financial_address_type") != "IFSC-BANK-ACCOUNT":
+                continue
+            ifsc = str((record.get("details") or {}).get("ifsc") or "").strip().upper()
+            if ifsc:
+                ifscs.append(ifsc)
+        if not ifscs:
+            return
+        try:
+            from openg2p_registry_core.helpers.master_data import MasterDataClient
+
+            client = MasterDataClient.get_component() or MasterDataClient()
+            codes = await client.get_attribute_codes()
+        except Exception:
+            _logger.warning("MDS unreachable; skipping IFSC directory check", exc_info=True)
+            return
+        known = (codes or {}).get("IFSC_DIRECTORY") or set()
+        for ifsc in ifscs:
+            if ifsc not in known:
+                _logger.warning(
+                    "IFSC %s is not an active MDS directory branch; accepted because branch validation is advisory",
+                    ifsc,
+                )
 
     async def _reject_duplicate_priorities(self, records: list[dict]) -> None:
         claimed: dict[tuple[str, int], str] = {}
