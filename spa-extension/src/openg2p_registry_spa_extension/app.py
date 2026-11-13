@@ -11,6 +11,7 @@ from openg2p_registry_core.app import Initializer as CoreInitializer
 
 from .handlers import HANDLERS
 from .register_domain.models import (
+    AccountLookupQueue,
     FinancialAddressType,
     FinancialServiceProvider,
     G2PIntakeFormBeneficiary,
@@ -19,6 +20,7 @@ from .register_domain.models import (
     G2PRegisterFinancialAddress,
     G2PRegisterHistoryBeneficiary,
     G2PRegisterHistoryFinancialAddress,
+    PennyDropQueue,
 )
 from .register_domain.services import (
     G2PRegisterDomainServiceBeneficiary,
@@ -43,6 +45,8 @@ class Initializer(BaseInitializer):
             _logger.info("Migrating SPA registry tables")
             await FinancialAddressType.create_migrate()
             await FinancialServiceProvider.create_migrate()
+            await PennyDropQueue.create_migrate()
+            await AccountLookupQueue.create_migrate()
             await G2PRegisterBeneficiary.create_migrate()
             await G2PRegisterHistoryBeneficiary.create_migrate()
             await G2PIntakeFormBeneficiary.create_migrate()
