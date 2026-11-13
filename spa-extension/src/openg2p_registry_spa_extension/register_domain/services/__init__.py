@@ -1,0 +1,2 @@
+from .g2p_register_domain_service_beneficiary import G2PRegisterDomainServiceBeneficiary
+from .g2p_register_domain_service_financial_address import G2PRegisterDomainServiceFinancialAddress
