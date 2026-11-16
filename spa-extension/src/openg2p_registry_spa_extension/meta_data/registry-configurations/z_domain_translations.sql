@@ -4,8 +4,14 @@ SET "domain_translation" = COALESCE("domain_translation"::jsonb, '{}'::jsonb) ||
   "beneficiary_identity": "Identity",
   "first_name": "First Name",
   "last_name": "Last Name",
+  "phone_number": "Phone Number",
+  "email": "Email",
   "foundational_id": "Foundational ID",
   "beneficiary_tab": "Beneficiary",
+  "beneficiary_id_tab": "Beneficiary IDs",
+  "beneficiary_ids": "Beneficiary IDs",
+  "id_type": "ID Type",
+  "id_value": "ID Value",
   "beneficiary_financial_address_tab": "Financial Addresses",
   "beneficiary_intake_tab": "Beneficiary",
   "beneficiary_intake": "Register a beneficiary",
@@ -32,6 +38,7 @@ SET "domain_translation" = COALESCE("domain_translation"::jsonb, '{}'::jsonb) ||
   "invalid_json": "Enter valid JSON. Text values need quotes, for example {\"rail\": \"RAAST\"}",
   "priority_already_used": "This priority is already used by another financial address",
   "Beneficiary": "Beneficiary",
+  "BeneficiaryId": "Beneficiary ID",
   "FinancialAddress": "Financial Address",
   "SPA Registry": "SPA Registry"
 }'::jsonb

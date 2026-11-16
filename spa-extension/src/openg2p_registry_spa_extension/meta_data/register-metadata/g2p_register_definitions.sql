@@ -13,6 +13,10 @@ INSERT INTO "public"."g2p_register_definitions" (
 (
   'b0000000-0000-4000-8000-000000000102','FinancialAddress','Financial Addresses','SPA financial address register',
   'a0000000-0000-4000-8000-000000000101',2,'FALSE','TABLE',NULL,NULL,NULL,'FALSE','FALSE',0,'FALSE','FALSE','FALSE',730,30
+),
+(
+  'b0000000-0000-4000-8000-000000000103','BeneficiaryId','Beneficiary IDs','SPA beneficiary identity documents',
+  'a0000000-0000-4000-8000-000000000101',3,'FALSE','TABLE',NULL,NULL,NULL,'FALSE','FALSE',0,'FALSE','FALSE','FALSE',730,30
 )
 ON CONFLICT ("register_id") DO UPDATE SET
   "register_mnemonic" = EXCLUDED."register_mnemonic",

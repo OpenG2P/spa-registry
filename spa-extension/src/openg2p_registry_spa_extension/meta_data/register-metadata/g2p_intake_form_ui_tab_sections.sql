@@ -7,6 +7,12 @@ INSERT INTO "public"."g2p_intake_form_ui_tab_sections" (
   10
 ),
 (
+  'c0000000-0000-4000-8000-000000000206',
+  'c0000000-0000-4000-8000-000000000205',
+  'beneficiary_id_section',
+  10
+),
+(
   'c0000000-0000-4000-8000-000000000204',
   'c0000000-0000-4000-8000-000000000202',
   'beneficiary_financial_address_section',

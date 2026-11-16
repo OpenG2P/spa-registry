@@ -1,44 +1,39 @@
 import logging
+import re
 
-from openg2p_fastapi_common.context import dbengine
 from openg2p_registry_core.services import G2PRegisterDomainService
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from ...config import Settings
+from ...handlers.base import HandlerContext, HandlerError
+from ...handlers.msisdn import MsisdnHandler
 from .prepare import validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class G2PRegisterDomainServiceBeneficiary(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
+        settings = Settings.get_config()
+        phone = MsisdnHandler()
+        ctx = HandlerContext(default_region=settings.default_phone_region)
         for record in records:
             first = (record.get("first_name") or "").strip()
             last = (record.get("last_name") or "").strip()
             if not first and not last:
                 validation_error("first_name or last_name is required")
-            alts = record.get("alternate_ids") or []
-            foundational = (record.get("foundational_id") or "").strip()
-            if not foundational and not alts:
-                validation_error("foundational_id or alternate_ids is required")
-            for alt in alts:
-                if not (alt.get("type") or "").strip() or not (alt.get("value") or "").strip():
-                    validation_error("alternate id type and value are required")
-            await self._check_uniqueness(record, foundational, alts)
-
-    async def _check_uniqueness(self, record: dict, foundational: str, alts: list) -> None:
-        from ..models.beneficiary import G2PRegisterBeneficiary
-
-        own_id = record.get("internal_record_id")
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            if foundational:
-                stmt = select(G2PRegisterBeneficiary.internal_record_id).where(
-                    G2PRegisterBeneficiary.foundational_id == foundational
-                )
-                found = (await session.execute(stmt)).scalars().all()
-                if any(str(item) != str(own_id) for item in found):
-                    validation_error("foundational_id already belongs to another beneficiary")
+            raw_phone = str(record.get("phone_number") or "").strip()
+            if not raw_phone:
+                validation_error("Phone number is required")
+            try:
+                record["phone_number"] = phone.normalize(raw_phone, ctx)
+                phone.validate(record["phone_number"], ctx)
+            except HandlerError as exc:
+                validation_error(str(exc))
+            raw_email = str(record.get("email") or "").strip()
+            if not raw_email or not _EMAIL.fullmatch(raw_email):
+                validation_error("A valid email is required")
+            record["email"] = raw_email.lower()
 
     def construct_record_name(self, payload: dict, extra: list[str] = None) -> str:
         parts = [
@@ -50,12 +45,10 @@ class G2PRegisterDomainServiceBeneficiary(G2PRegisterDomainService):
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         parts = [
             payload.get("functional_record_id"),
-            payload.get("foundational_id"),
+            payload.get("phone_number"),
+            payload.get("email"),
             payload.get("record_name") or self.construct_record_name(payload),
         ]
-        for alt in payload.get("alternate_ids") or []:
-            if isinstance(alt, dict):
-                parts.append(alt.get("value"))
         if extra:
             parts.extend(extra)
         return " ".join(str(part).strip() for part in parts if str(part or "").strip())

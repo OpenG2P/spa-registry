@@ -24,11 +24,27 @@ INSERT INTO "public"."g2p_register_sections" (
   'beneficiary_identity',
   'Beneficiary name and foundational id',
   'FALSE', 0, 'FALSE', 10,
-  '{"section-id":"beneficiary_identity","section-title":"beneficiary_identity","panels":[{"panel-id":"beneficiary_identity_panel","panels":[{"panel-id":"beneficiary_identity_inner_panel","widgets":[
+  '{"section-id":"beneficiary_identity","section-title":"beneficiary_identity","panels":[{"panel-id":"beneficiary_identity_panel","panel-orientation":"horizontal","panels":[{"panel-id":"beneficiary_identity_names","panel-orientation":"vertical","widgets":[
     {"widget":"text","widget-id":"first_name","widget-type":"input","widget-label":"first_name","widget-required":true,"widget-data-path":"a0000000-0000-4000-8000-000000000101.first_name"},
-    {"widget":"text","widget-id":"last_name","widget-type":"input","widget-label":"last_name","widget-required":true,"widget-data-path":"a0000000-0000-4000-8000-000000000101.last_name"},
-    {"widget":"text","widget-id":"foundational_id","widget-type":"input","widget-label":"foundational_id","widget-required":true,"widget-data-path":"a0000000-0000-4000-8000-000000000101.foundational_id"}
+    {"widget":"text","widget-id":"last_name","widget-type":"input","widget-label":"last_name","widget-required":true,"widget-data-path":"a0000000-0000-4000-8000-000000000101.last_name"}
+  ]},{"panel-id":"beneficiary_identity_contact","panel-orientation":"vertical","widgets":[
+    {"widget":"text","widget-id":"phone_number","widget-type":"input","widget-label":"phone_number","widget-required":true,"widget-data-path":"a0000000-0000-4000-8000-000000000101.phone_number"},
+    {"widget":"text","widget-id":"email","widget-type":"input","widget-label":"email","widget-required":true,"widget-data-path":"a0000000-0000-4000-8000-000000000101.email"}
   ]}]}]}',
+  'FALSE','FALSE','FALSE','FALSE'
+),
+(
+  'a0000000-0000-4000-8000-000000000101',
+  'beneficiary_id_section',
+  'b0000000-0000-4000-8000-000000000103',
+  'FALSE',
+  'beneficiary_ids',
+  'Identity documents of the beneficiary',
+  'FALSE', 0, 'TRUE', 15,
+  '{"section-id":"beneficiary_ids","section-title":"beneficiary_ids","panels":[{"panel-id":"beneficiary_id_panel","panels":[{"panel-id":"beneficiary_id_inner_panel","widgets":[{"widget":"dialog-table","widget-id":"beneficiary_ids","widget-type":"table","widget-label":"beneficiary_ids","widget-data-path":"b0000000-0000-4000-8000-000000000103.records","widget-data-operations":{"add":true,"edit":true,"remove":true},"widget-data-columns":[
+    {"column-key":"id_type","widget":"text","widget-label":"id_type","widget-required":true},
+    {"column-key":"id_value","widget":"text","widget-label":"id_value","widget-required":true}
+  ]}]}]}]}',
   'FALSE','FALSE','FALSE','FALSE'
 ),
 (

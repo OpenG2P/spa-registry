@@ -25,7 +25,7 @@ _COLUMNS = [
     "record_name", "created_by", "created_at",
     "last_approved_at", "last_approved_by",
     "search_text", "record_status",
-    "foundational_id", "first_name", "last_name",
+    "first_name", "last_name",
 ]
 
 # Re-runnable: a second install/upgrade updates the row rather than colliding on
@@ -38,8 +38,7 @@ ON CONFLICT ("internal_record_id") DO UPDATE SET
     "search_text"   = EXCLUDED."search_text",
     "record_status" = EXCLUDED."record_status",
     "first_name"    = EXCLUDED."first_name",
-    "last_name"     = EXCLUDED."last_name",
-    "foundational_id" = EXCLUDED."foundational_id";
+    "last_name"     = EXCLUDED."last_name";
 """
 
 _CREATED_AT = "2026-01-01 00:00:00"
@@ -62,7 +61,7 @@ def _row():
         full_name, fixtures.CREATED_BY, _CREATED_AT,
         _CREATED_AT, fixtures.CREATED_BY,
         search_text, "ACTIVE",
-        fixtures.FARMER_FOUNDATIONAL_ID, f["first_name"], f["last_name"],
+        f["first_name"], f["last_name"],
     )
 
 

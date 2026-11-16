@@ -16,6 +16,13 @@ INSERT INTO "public"."g2p_register_ui_tab_sections" (
   10
 ),
 (
+  'd0000000-0000-4000-8000-000000000303',
+  'a0000000-0000-4000-8000-000000000101',
+  'beneficiary_id_tab',
+  'beneficiary_id_section',
+  10
+),
+(
   'd0000000-0000-4000-8000-000000000302',
   'a0000000-0000-4000-8000-000000000101',
   'beneficiary_financial_address_tab',

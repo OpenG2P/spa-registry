@@ -15,10 +15,13 @@ from .register_domain.models import (
     FinancialAddressType,
     FinancialServiceProvider,
     G2PIntakeFormBeneficiary,
+    G2PIntakeFormBeneficiaryId,
     G2PIntakeFormFinancialAddress,
     G2PRegisterBeneficiary,
+    G2PRegisterBeneficiaryId,
     G2PRegisterFinancialAddress,
     G2PRegisterHistoryBeneficiary,
+    G2PRegisterHistoryBeneficiaryId,
     G2PRegisterHistoryFinancialAddress,
     PennyDropQueue,
 )
@@ -50,6 +53,9 @@ class Initializer(BaseInitializer):
             await G2PRegisterBeneficiary.create_migrate()
             await G2PRegisterHistoryBeneficiary.create_migrate()
             await G2PIntakeFormBeneficiary.create_migrate()
+            await G2PRegisterBeneficiaryId.create_migrate()
+            await G2PRegisterHistoryBeneficiaryId.create_migrate()
+            await G2PIntakeFormBeneficiaryId.create_migrate()
             await G2PRegisterFinancialAddress.create_migrate()
             await G2PRegisterHistoryFinancialAddress.create_migrate()
             await G2PIntakeFormFinancialAddress.create_migrate()

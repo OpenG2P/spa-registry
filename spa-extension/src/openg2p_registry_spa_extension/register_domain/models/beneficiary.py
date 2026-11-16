@@ -14,8 +14,8 @@ from ..services.g2p_register_domain_service_beneficiary import (
 class G2PBeneficiary:
     first_name: Mapped[str] = mapped_column(String, nullable=True)
     last_name: Mapped[str] = mapped_column(String, nullable=True)
-    foundational_id: Mapped[str] = mapped_column(String, nullable=True, index=True)
-    alternate_ids: Mapped[dict] = mapped_column(JSONB, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String, nullable=True)
+    email: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class G2PRegisterBeneficiary(G2PRegister, G2PBeneficiary):
@@ -26,6 +26,61 @@ class G2PRegisterBeneficiary(G2PRegister, G2PBeneficiary):
 
     def get_record_name_fields(self) -> str:
         return G2PRegisterDomainServiceBeneficiary().construct_record_name(self.to_dict())
+
+
+class G2PBeneficiaryId:
+    """Columns shared with the history twin. The parent beneficiary is link_internal_record_id."""
+
+    id_type: Mapped[str] = mapped_column(String, nullable=False)
+    id_value: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class G2PRegisterBeneficiaryId(G2PRegister, G2PBeneficiaryId):
+    __tablename__ = "g2p_register_beneficiary_id"
+    __table_args__ = (
+        UniqueConstraint(
+            "link_internal_record_id",
+            "id_type",
+            "id_value",
+            name="uq_beneficiary_id_type_value",
+        ),
+    )
+
+    def get_search_text_fields(self) -> str:
+        from ..services.g2p_register_domain_service_beneficiary_id import (
+            G2PRegisterDomainServiceBeneficiaryId,
+        )
+
+        return G2PRegisterDomainServiceBeneficiaryId().construct_search_text(self.to_dict())
+
+    def get_record_name_fields(self) -> str:
+        from ..services.g2p_register_domain_service_beneficiary_id import (
+            G2PRegisterDomainServiceBeneficiaryId,
+        )
+
+        return G2PRegisterDomainServiceBeneficiaryId().construct_record_name(self.to_dict())
+
+
+class G2PRegisterHistoryBeneficiaryId(G2PRegisterHistory, G2PBeneficiaryId):
+    __tablename__ = "g2p_register_history_beneficiary_id"
+
+
+class G2PIntakeFormBeneficiaryId(G2PIntakeForm, G2PRegister, G2PBeneficiaryId):
+    __tablename__ = "g2p_intake_form_beneficiary_id"
+
+    def get_search_text_fields(self) -> str:
+        from ..services.g2p_register_domain_service_beneficiary_id import (
+            G2PRegisterDomainServiceBeneficiaryId,
+        )
+
+        return G2PRegisterDomainServiceBeneficiaryId().construct_search_text(self.to_dict())
+
+    def get_record_name_fields(self) -> str:
+        from ..services.g2p_register_domain_service_beneficiary_id import (
+            G2PRegisterDomainServiceBeneficiaryId,
+        )
+
+        return G2PRegisterDomainServiceBeneficiaryId().construct_record_name(self.to_dict())
 
 
 class G2PRegisterHistoryBeneficiary(G2PRegisterHistory, G2PBeneficiary):
