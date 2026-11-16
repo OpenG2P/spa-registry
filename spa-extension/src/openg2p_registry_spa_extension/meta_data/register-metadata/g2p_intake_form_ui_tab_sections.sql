@@ -8,15 +8,15 @@ INSERT INTO "public"."g2p_intake_form_ui_tab_sections" (
 ),
 (
   'c0000000-0000-4000-8000-000000000206',
-  'c0000000-0000-4000-8000-000000000205',
+  'c0000000-0000-4000-8000-000000000202',
   'beneficiary_id_section',
-  10
+  20
 ),
 (
   'c0000000-0000-4000-8000-000000000204',
   'c0000000-0000-4000-8000-000000000202',
   'beneficiary_financial_address_section',
-  20
+  30
 )
 ON CONFLICT ("tab_section_id") DO UPDATE SET
   "tab_id" = EXCLUDED."tab_id",

@@ -4,12 +4,6 @@ VALUES (
   'c0000000-0000-4000-8000-000000000201',
   'beneficiary_intake_tab',
   10
-),
-(
-  'c0000000-0000-4000-8000-000000000205',
-  'c0000000-0000-4000-8000-000000000201',
-  'beneficiary_id_tab',
-  20
 )
 ON CONFLICT ("tab_id") DO UPDATE SET
   "form_id" = EXCLUDED."form_id",

@@ -31,6 +31,9 @@ class G2PRegisterHistorySchemaFinancialAddress(G2PRegisterHistorySchema, G2PSche
 
 
 class G2PIntakeFormSchemaFinancialAddress(
-    G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PSchemaFinancialAddress
+    G2PIntakeFormSchemaBase,
+    G2PRegisterBaseSchema,
+    G2PSchemaFinancialAddress,
+    G2PSchemaFinancialAddressStatus,
 ):
     pass

@@ -31,8 +31,8 @@ class G2PRegisterBeneficiary(G2PRegister, G2PBeneficiary):
 class G2PBeneficiaryId:
     """Columns shared with the history twin. The parent beneficiary is link_internal_record_id."""
 
-    id_type: Mapped[str] = mapped_column(String, nullable=False)
-    id_value: Mapped[str] = mapped_column(String, nullable=False)
+    id_type: Mapped[str] = mapped_column(String, nullable=True)
+    id_value: Mapped[str] = mapped_column(String, nullable=True)
 
 
 class G2PRegisterBeneficiaryId(G2PRegister, G2PBeneficiaryId):
@@ -152,7 +152,9 @@ class G2PRegisterHistoryFinancialAddress(G2PRegisterHistory, G2PFinancialAddress
     __tablename__ = "g2p_register_history_financial_address"
 
 
-class G2PIntakeFormFinancialAddress(G2PIntakeForm, G2PRegister, G2PFinancialAddressVersioned):
+class G2PIntakeFormFinancialAddress(
+    G2PIntakeForm, G2PRegister, G2PFinancialAddressVersioned, G2PFinancialAddressStatus
+):
     __tablename__ = "g2p_intake_form_financial_address"
 
     def get_search_text_fields(self) -> str:

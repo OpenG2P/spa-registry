@@ -18,6 +18,7 @@ class G2PRegisterDomainServiceFinancialAddress(G2PRegisterDomainService):
         settings = Settings.get_config()
         types = await self._load_types()
         providers = await self._load_providers()
+        currencies = await self._load_currencies()
         for record in records:
             code = record.get("financial_address_type")
             type_row = types.get(code)
@@ -30,8 +31,13 @@ class G2PRegisterDomainServiceFinancialAddress(G2PRegisterDomainService):
                 validation_error("Financial address type is required")
             if not str(record.get("financial_address_identifier") or "").strip():
                 validation_error("Financial address identifier is required")
-            if not str(record.get("currency") or "").strip():
+            currency = str(record.get("currency") or "").strip()
+            if not currency:
                 validation_error("Currency is required")
+            if not currencies:
+                validation_error("Currency list is not available in master data")
+            if currency not in currencies:
+                validation_error("Unknown currency")
             if status != "ACTIVE" and priority not in (None, ""):
                 validation_error("An inactive financial address cannot have a priority")
             if status == "ACTIVE" and (priority is None or str(priority).strip() == ""):
@@ -46,11 +52,6 @@ class G2PRegisterDomainServiceFinancialAddress(G2PRegisterDomainService):
         await self._reject_duplicate_priorities(records)
 
     async def _advise_ifsc_directory(self, records: list[dict]) -> None:
-        """IFSC format and bank prefix are enforced in the handler.
-
-        Whether the branch exists in Master Data is advisory: a miss or an
-        unreachable directory is logged and the write still proceeds.
-        """
         ifscs = []
         for record in records:
             if record.get("financial_address_type") != "IFSC-BANK-ACCOUNT":
@@ -66,15 +67,13 @@ class G2PRegisterDomainServiceFinancialAddress(G2PRegisterDomainService):
             client = MasterDataClient.get_component() or MasterDataClient()
             codes = await client.get_attribute_codes()
         except Exception:
-            _logger.warning("MDS unreachable; skipping IFSC directory check", exc_info=True)
-            return
+            validation_error("IFSC directory is not available in master data")
         known = (codes or {}).get("IFSC_DIRECTORY") or set()
+        if not known:
+            validation_error("IFSC directory is not available in master data")
         for ifsc in ifscs:
             if ifsc not in known:
-                _logger.warning(
-                    "IFSC %s is not an active MDS directory branch; accepted because branch validation is advisory",
-                    ifsc,
-                )
+                validation_error(f"IFSC {ifsc} is not in the master data directory")
 
     async def _reject_duplicate_priorities(self, records: list[dict]) -> None:
         claimed: dict[tuple[str, int], str] = {}
@@ -200,36 +199,55 @@ class G2PRegisterDomainServiceFinancialAddress(G2PRegisterDomainService):
         settings = Settings.get_config()
         return decrypt_identifier(stored, settings.financial_address_encryption_key)
 
-    async def _load_types(self) -> dict:
-        from ..models.reference_data import FinancialAddressType
+    async def _load_currencies(self) -> set[str]:
+        rows = await self._master_data_rows("CURRENCY")
+        return {str(row.get("value_code")) for row in rows if row.get("value_code")}
 
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            rows = (await session.execute(select(FinancialAddressType))).scalars().all()
-        return {
-            row.code: {
-                "code": row.code,
-                "kind": row.kind,
-                "handler": row.handler,
-                "validation_regex": row.validation_regex,
-                "normalizer": row.normalizer,
-                "provider_required": row.provider_required,
-                "validation_method": row.validation_method,
-                "active": row.active,
-            }
-            for row in rows
-        }
+    async def _master_data_rows(self, attribute_id: str) -> list[dict]:
+        try:
+            from openg2p_registry_core.helpers.master_data import MasterDataClient
+
+            client = MasterDataClient.get_component() or MasterDataClient()
+            return await client.get_attribute_value_rows(attribute_id)
+        except Exception:
+            validation_error(f"{attribute_id} is not available in master data")
+
+    async def _load_types(self) -> dict:
+        rows = await self._master_data_rows("FINANCIAL_ADDRESS_TYPE")
+        if rows:
+            loaded = {}
+            for row in rows:
+                code = row.get("value_code")
+                attrs = row.get("attributes") or {}
+                if not code:
+                    continue
+                loaded[code] = {
+                    "code": code,
+                    "kind": attrs.get("kind"),
+                    "handler": attrs.get("handler"),
+                    "validation_regex": attrs.get("validation_regex"),
+                    "normalizer": attrs.get("normalizer"),
+                    "provider_required": bool(attrs.get("provider_required")),
+                    "validation_method": attrs.get("validation_method") or "NONE",
+                    "active": True,
+                }
+            if loaded:
+                return loaded
+        validation_error("FINANCIAL_ADDRESS_TYPE is not available in master data")
 
     async def _load_providers(self) -> dict:
-        from ..models.reference_data import FinancialServiceProvider
-
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            rows = (await session.execute(select(FinancialServiceProvider))).scalars().all()
-        return {
-            row.code: {"code": row.code, "services": list(row.services or []), "active": row.active}
-            for row in rows
-        }
+        rows = await self._master_data_rows("FINANCIAL_SERVICE_PROVIDER")
+        if rows:
+            loaded = {}
+            for row in rows:
+                code = row.get("value_code")
+                attrs = row.get("attributes") or {}
+                if not code:
+                    continue
+                loaded[code] = {"code": code, "services": list(attrs.get("services") or []), "active": True}
+            if loaded:
+                return loaded
+        validation_error("FINANCIAL_SERVICE_PROVIDER is not available in master data")
 
     async def pre_approve(self, change_request, session):
         return None
