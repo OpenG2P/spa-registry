@@ -1,6 +1,6 @@
 from openg2p_registry_spa_extension.register_domain.services.account_lookup import (
     classify_response,
-    connector_for,
+    ConnectorFactory,
     name_match,
     render_template,
 )
@@ -8,24 +8,27 @@ from openg2p_registry_spa_extension.register_domain.services.account_lookup impo
 
 class _Settings:
     account_lookup_connectors = {
-        "UPI-VPA-BANK-ACCOUNT": {
-            "connector": "upi",
-            "url": "https://lookup.example/vpa",
-            "payload": {"vpa": "{identifier}"},
-        },
-        "MSISDN-WALLET:PAYTM-WALLET": {
-            "connector": "paytm",
-            "url": "https://lookup.example/paytm",
-            "payload": {"mobile": "{identifier}"},
-        },
+        "MSISDN-WALLET": [
+            {
+                "connector": "http-json",
+                "url": "https://lookup.example/wallet",
+                "provider_codes": ["*"],
+            },
+            {
+                "connector": "http-json",
+                "url": "https://lookup.example/paytm",
+                "provider_codes": ["PAYTM-WALLET"],
+            },
+        ],
     }
 
 
-def test_provider_specific_connector_wins():
+def test_star_connector_wins():
     settings = _Settings()
-    chosen = connector_for("MSISDN-WALLET", "PAYTM-WALLET", settings)
-    assert chosen.name == "paytm"
-    assert connector_for("MSISDN-WALLET", "AIRTEL-WALLET", settings) is None
+    chosen = ConnectorFactory.get("MSISDN-WALLET", "PAYTM-WALLET", settings)
+    assert chosen.config["url"] == "https://lookup.example/wallet"
+    default = ConnectorFactory.get("MSISDN-WALLET", "AIRTEL-WALLET", settings)
+    assert default.config["url"] == "https://lookup.example/wallet"
 
 
 def test_payload_template_and_result_mapping():

@@ -1,6 +1,7 @@
 import logging
 
-from sqlalchemy import event
+from sqlalchemy import event, inspect as sa_inspect
+from sqlalchemy.orm.attributes import get_history
 
 from ...config import Settings
 from ...handlers import HANDLERS
@@ -79,8 +80,24 @@ def _beneficiary_record_name(connection, target) -> str:
     return ""
 
 
+def _content_changed(target) -> bool:
+    """True when an existing row's address fields changed. Validation columns are ignored."""
+    if not sa_inspect(target).persistent:
+        return False
+    fields = (
+        "financial_address_type",
+        "financial_address_identifier",
+        "provider_code",
+        "details",
+        "financial_address_name",
+        "currency",
+    )
+    return any(get_history(target, field).has_changes() for field in fields)
+
+
 def _before_save(mapper, connection, target):
     settings = Settings.get_config()
+    changed = _content_changed(target)
     code = getattr(target, "financial_address_type", None)
     type_row = _type_dict(code) if code else None
     if type_row is None:
@@ -111,7 +128,7 @@ def _before_save(mapper, connection, target):
     status = getattr(target, "record_status", None) or "ACTIVE"
     if status != "ACTIVE":
         target.priority = None
-    if not getattr(target, "account_validation_status", None):
+    if changed or not getattr(target, "account_validation_status", None):
         status, next_date = initial_validation_status(type_row)
         target.account_validation_status = status
         target.account_validation_next_date = next_date

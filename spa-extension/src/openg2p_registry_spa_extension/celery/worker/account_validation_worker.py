@@ -2,13 +2,13 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
 from ...register_domain.models.account_validation_queue import AccountLookupQueue
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
-from ...register_domain.services.account_lookup import connector_for
+from ...register_domain.services.account_lookup import ConnectorFactory
 from ..helper import OPEN_QUEUE_STATUSES
 
 _logger = logging.getLogger("g2p-register-domain-service")
@@ -55,7 +55,7 @@ def _enqueue_lookups(session, fa_ids: list[str]) -> None:
         ).first()
         if open_row is not None:
             continue
-        connector = connector_for(address.financial_address_type, address.provider_code, settings)
+        connector = ConnectorFactory.get(address.financial_address_type, address.provider_code, settings)
         if connector is None:
             _logger.warning(
                 "No lookup connector for %s provider %s; marking NOT_APPLICABLE",
@@ -65,20 +65,12 @@ def _enqueue_lookups(session, fa_ids: list[str]) -> None:
             address.account_validation_status = "NOT_APPLICABLE"
             address.account_validation_next_date = None
             continue
-        attempt_no = (
-            session.execute(
-                select(func.count())
-                .select_from(AccountLookupQueue)
-                .where(AccountLookupQueue.fa_internal_record_id == fa_id)
-            ).scalar()
-            or 0
-        ) + 1
         now = datetime.now(timezone.utc)
         session.add(
             AccountLookupQueue(
                 lookup_id=f"LK-{uuid.uuid4().hex}",
                 fa_internal_record_id=fa_id,
-                attempt_no=int(attempt_no),
+                attempt_no=1,
                 status="PENDING",
                 connector=connector.name,
                 next_attempt_at=now,

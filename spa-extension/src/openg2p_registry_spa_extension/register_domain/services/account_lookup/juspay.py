@@ -1,12 +1,13 @@
-"""Juspay verify-vpa. The API key is read from the env var named by api_key_env."""
+"""Juspay verify-vpa. The API key and merchant id come from Settings.juspay_api_key and Settings.juspay_merchant_id."""
 
 import base64
 import json
-import os
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 
+from ....config import Settings
+from ...models.beneficiary import G2PRegisterFinancialAddress
 from .base import AccountLookupConnector, LookupResult
 
 
@@ -17,9 +18,10 @@ class JuspayConnector(AccountLookupConnector):
         self.config = config
         self.name = str(config.get("connector") or self.name)
 
-    def lookup(self, address, identifier: str) -> LookupResult:
-        api_key = os.environ.get(str(self.config.get("api_key_env") or "")) or ""
-        merchant_id = str(self.config.get("merchant_id") or "")
+    def lookup(self, address: G2PRegisterFinancialAddress, identifier: str) -> LookupResult:
+        settings = Settings.get_config(strict=True)
+        api_key = settings.juspay_api_key
+        merchant_id = settings.juspay_merchant_id
         if not api_key or not merchant_id:
             return LookupResult(status="ERROR", error="Juspay api key or merchant_id is not set")
         token = base64.b64encode(api_key.encode()).decode()

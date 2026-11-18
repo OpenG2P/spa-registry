@@ -5,10 +5,11 @@ The first response is often status "created". That is not a final answer, so it 
 
 import base64
 import json
-import os
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
+from ....config import Settings
+from ...models.beneficiary import G2PRegisterFinancialAddress
 from .base import AccountLookupConnector, LookupResult
 
 
@@ -19,10 +20,11 @@ class RazorpayConnector(AccountLookupConnector):
         self.config = config
         self.name = str(config.get("connector") or self.name)
 
-    def lookup(self, address, identifier: str) -> LookupResult:
-        key_id = os.environ.get(str(self.config.get("key_id_env") or "")) or ""
-        key_secret = os.environ.get(str(self.config.get("key_secret_env") or "")) or ""
-        source = os.environ.get(str(self.config.get("source_account_env") or "")) or ""
+    def lookup(self, address: G2PRegisterFinancialAddress, identifier: str) -> LookupResult:
+        settings = Settings.get_config(strict=True)
+        key_id = settings.razorpay_key_id
+        key_secret = settings.razorpay_key_secret
+        source = settings.razorpay_source_account
         if not key_id or not key_secret or not source:
             return LookupResult(status="ERROR", error="Razorpay key or source account is not set")
         token = base64.b64encode(f"{key_id}:{key_secret}".encode()).decode()

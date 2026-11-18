@@ -4,13 +4,14 @@ Paytm does not accept a static API key on this call. token_env must be a TXN_TOK
 """
 
 import json
-import os
 import time
 import uuid
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 
+from ....config import Settings
+from ...models.beneficiary import G2PRegisterFinancialAddress
 from .base import AccountLookupConnector, LookupResult
 
 
@@ -21,9 +22,10 @@ class PaytmVpaConnector(AccountLookupConnector):
         self.config = config
         self.name = str(config.get("connector") or self.name)
 
-    def lookup(self, address, identifier: str) -> LookupResult:
-        mid = os.environ.get(str(self.config.get("mid_env") or "")) or ""
-        token = os.environ.get(str(self.config.get("token_env") or "")) or ""
+    def lookup(self, address: G2PRegisterFinancialAddress, identifier: str) -> LookupResult:
+        settings = Settings.get_config(strict=True)
+        mid = settings.paytm_mid
+        token = settings.paytm_txn_token
         if not mid or not token:
             return LookupResult(status="ERROR", error="Paytm mid or token is not set")
         order_id = uuid.uuid4().hex

@@ -58,6 +58,51 @@ registry:
         secretKeyRef:
           name: '{{ .Release.Name }}-account-lookup-secret'
           key: api-key
+      REGISTRY_EXTENSIONS_PAYU_MERCHANT_KEY:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-payu-secret'
+          key: merchant-key
+          optional: true
+      REGISTRY_EXTENSIONS_PAYU_SALT:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-payu-secret'
+          key: salt
+          optional: true
+      REGISTRY_EXTENSIONS_JUSPAY_API_KEY:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-juspay-secret'
+          key: api-key
+          optional: true
+      REGISTRY_EXTENSIONS_JUSPAY_MERCHANT_ID:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-juspay-secret'
+          key: merchant-id
+          optional: true
+      REGISTRY_EXTENSIONS_RAZORPAY_KEY_ID:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-razorpay-secret'
+          key: key-id
+          optional: true
+      REGISTRY_EXTENSIONS_RAZORPAY_KEY_SECRET:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-razorpay-secret'
+          key: key-secret
+          optional: true
+      REGISTRY_EXTENSIONS_RAZORPAY_SOURCE_ACCOUNT:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-razorpay-secret'
+          key: source-account
+          optional: true
+      REGISTRY_EXTENSIONS_PAYTM_MID:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-paytm-secret'
+          key: mid
+          optional: true
+      REGISTRY_EXTENSIONS_PAYTM_TXN_TOKEN:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-paytm-secret'
+          key: txn-token
+          optional: true
   celeryBeat:
     image:
       repository: openg2p/openg2p-spa-registry-celery
@@ -142,70 +187,31 @@ registry:
     crTabId: "beneficiary_tab"
     crSectionId: "beneficiary_identity_section"
 
-# One http-json entry per lookup type. Every provider of that type uses it.
-# The example validator reads "identifier". Status and name use the connector defaults.
-# REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY comes from Secret <release>-account-lookup-secret, key api-key.
+# One list per address type. The first provider_codes: ["*"] entry is used.
+# A named provider code is used only when that address type has no "*" entry.
+# Secret values are not in this file.
 accountLookupConnectors:
   UPI-VPA-BANK-ACCOUNT:
-    connector: upi
-    adapter: http-json
-    url: https://example-validation.dev.openg2p.org/lookup/upi
-    api_key_env: REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY
-    headers:
-      X-Api-Key: "{api_key}"
-    payload:
-      identifier: "{identifier}"
+    - connector: http-json
+      provider_codes: ["*"]
+      url: https://example-validation.dev.openg2p.org/lookup/upi
+    - connector: payu
+      provider_codes: ["sbi", "axisbank"]
+      url: https://test.payu.in/merchant/postservice.php?form=2
+    - connector: juspay
+      provider_codes: ["hdfcbank", "icici"]
+      url: https://sandbox.juspay.in/v2/upi/verify-vpa
+    - connector: razorpay
+      provider_codes: ["okicici"]
+      url: https://api.razorpay.com/v1/fund_accounts/validations
+    - connector: paytm-vpa
+      provider_codes: ["paytm"]
+      url: https://securestage.paytmpayments.com/theia/api/v1/vpa/validate
   MSISDN-WALLET:
-    connector: wallet
-    adapter: http-json
-    url: https://example-validation.dev.openg2p.org/lookup/msisdn-wallet
-    api_key_env: REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY
-    headers:
-      X-Api-Key: "{api_key}"
-    payload:
-      identifier: "{identifier}"
+    - connector: http-json
+      provider_codes: ["*"]
+      url: https://example-validation.dev.openg2p.org/lookup/msisdn-wallet
   MSISDN-BANK-ACCOUNT:
-    connector: msisdn-bank
-    adapter: http-json
-    url: https://example-validation.dev.openg2p.org/lookup/msisdn-bank
-    api_key_env: REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY
-    headers:
-      X-Api-Key: "{api_key}"
-    payload:
-      identifier: "{identifier}"
-  # Not loaded. The map key is a name for this gateway, not a provider code.
-  # provider_codes lists the MDS codes that use it. Everyone else keeps the
-  # UPI-VPA-BANK-ACCOUNT entry above. Add codes here instead of one key each.
-  # payu-upi:
-  #   connector: payu
-  #   adapter: payu
-  #   financial_address_type: UPI-VPA-BANK-ACCOUNT
-  #   provider_codes: [okicici, hdfcbank, sbi, icici, axisbank]
-  #   url: https://test.payu.in/merchant/postservice.php?form=2
-  #   key_env: PAYU_MERCHANT_KEY
-  #   salt_env: PAYU_SALT
-  # juspay-upi:
-  #   connector: juspay
-  #   adapter: juspay
-  #   financial_address_type: UPI-VPA-BANK-ACCOUNT
-  #   provider_codes: []
-  #   url: https://sandbox.juspay.in/v2/upi/verify-vpa
-  #   merchant_id: merchantId
-  #   api_key_env: JUSPAY_API_KEY
-  # razorpay-upi:
-  #   connector: razorpay
-  #   adapter: razorpay
-  #   financial_address_type: UPI-VPA-BANK-ACCOUNT
-  #   provider_codes: []
-  #   url: https://api.razorpay.com/v1/fund_accounts/validations
-  #   key_id_env: RAZORPAY_KEY_ID
-  #   key_secret_env: RAZORPAY_KEY_SECRET
-  #   source_account_env: RAZORPAY_SOURCE_ACCOUNT
-  # paytm-upi:
-  #   connector: paytm-vpa
-  #   adapter: paytm-vpa
-  #   financial_address_type: UPI-VPA-BANK-ACCOUNT
-  #   provider_codes: []
-  #   url: https://securestage.paytmpayments.com/theia/api/v1/vpa/validate
-  #   mid_env: PAYTM_MID
-  #   token_env: PAYTM_TXN_TOKEN
+    - connector: http-json
+      provider_codes: ["*"]
+      url: https://example-validation.dev.openg2p.org/lookup/msisdn-bank

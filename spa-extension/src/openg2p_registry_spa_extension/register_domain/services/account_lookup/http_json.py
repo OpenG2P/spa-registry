@@ -1,8 +1,9 @@
 import json
-import os
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 
+from ....config import Settings
+from ...models.beneficiary import G2PRegisterFinancialAddress
 from .base import AccountLookupConnector, LookupResult
 from .template import render_template
 
@@ -16,7 +17,7 @@ class HttpJsonConnector(AccountLookupConnector):
         self.config = config
         self.name = str(config.get("connector") or self.name)
 
-    def lookup(self, address, identifier: str) -> LookupResult:
+    def lookup(self, address: G2PRegisterFinancialAddress, identifier: str) -> LookupResult:
         # address: G2PRegisterFinancialAddress. identifier: plaintext VPA, MSISDN, or account number.
         context = {
             "identifier": identifier,
@@ -24,14 +25,12 @@ class HttpJsonConnector(AccountLookupConnector):
             "account_name": address.financial_address_name or "",
             "financial_address_type": address.financial_address_type or "",
             "details": address.details or {},
-            "api_key": _api_key(self.config),
         }
         payload = render_template(self.config.get("payload") or {"identifier": "{identifier}"}, context)
-        headers = {
-            str(key): str(value)
-            for key, value in render_template(self.config.get("headers") or {}, context).items()
-        }
-        headers.setdefault("Content-Type", "application/json")
+        headers = {"Content-Type": "application/json"}
+        api_key = Settings.get_config(strict=True).account_lookup_api_key
+        if api_key:
+            headers["X-Api-Key"] = api_key
         timeout = int(self.config.get("timeout_seconds") or 10)
         req = urlrequest.Request(
             self.config["url"],
@@ -54,14 +53,6 @@ class HttpJsonConnector(AccountLookupConnector):
         if not isinstance(body, dict):
             return LookupResult(status="ERROR", error="lookup response was not an object")
         return classify_response(body, self.config)
-
-
-def _api_key(config: dict) -> str:
-    """Sample configs set api_key. A real key sets api_key_env to the worker Secret env var and leaves api_key empty."""
-    env_name = str(config.get("api_key_env") or "")
-    if env_name:
-        return os.environ.get(env_name) or ""
-    return str(config.get("api_key") or "")
 
 
 def classify_response(body: dict, connector: dict) -> LookupResult:

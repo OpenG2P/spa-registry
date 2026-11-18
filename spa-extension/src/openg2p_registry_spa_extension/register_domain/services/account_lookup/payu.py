@@ -1,12 +1,13 @@
-"""PayU validateVPA. Merchant key and salt come from env vars named in the config."""
+"""PayU validateVPA. Merchant key and salt come from Settings.payu_merchant_key and Settings.payu_salt."""
 
 import hashlib
 import json
-import os
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 
+from ....config import Settings
+from ...models.beneficiary import G2PRegisterFinancialAddress
 from .base import AccountLookupConnector, LookupResult
 
 
@@ -17,9 +18,10 @@ class PayuConnector(AccountLookupConnector):
         self.config = config
         self.name = str(config.get("connector") or self.name)
 
-    def lookup(self, address, identifier: str) -> LookupResult:
-        key = _env(self.config, "key_env")
-        salt = _env(self.config, "salt_env")
+    def lookup(self, address: G2PRegisterFinancialAddress, identifier: str) -> LookupResult:
+        settings = Settings.get_config(strict=True)
+        key = settings.payu_merchant_key
+        salt = settings.payu_salt
         if not key or not salt:
             return LookupResult(status="ERROR", error="PayU key or salt is not set")
         digest = hashlib.sha512(f"{key}|validateVPA|{identifier}|{salt}".encode()).hexdigest()
@@ -38,10 +40,6 @@ class PayuConnector(AccountLookupConnector):
         if str(payload.get("status") or "").upper() == "SUCCESS" and valid == "0":
             return LookupResult(status="NOT_FOUND", raw=payload)
         return LookupResult(status="ERROR", error="unrecognized PayU response", raw=payload)
-
-
-def _env(config: dict, field: str) -> str:
-    return os.environ.get(str(config.get(field) or "")) or ""
 
 
 def _post(url: str, data: bytes, content_type: str):

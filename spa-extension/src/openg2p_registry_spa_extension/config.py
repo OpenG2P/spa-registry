@@ -30,8 +30,27 @@ class Settings(CoreSettings):
     account_lookup_stale_minutes: int = 30
     account_validation_chunk_size: int = 100
     account_validation_revalidation_days: int = 365
-    # Worker Secret env REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY. Not stored in the connector map.
+    # Values come from the worker Secret. The connector map only names these env vars.
+
+    # http-json lookup
     account_lookup_api_key: str = ""
-    # Keyed by financial address type, or by "TYPE:PROVIDER_CODE" when that
-    # provider needs its own request body. A missing url means no connector.
+
+    # PayU validate VPA
+    payu_merchant_key: str = ""
+    payu_salt: str = ""
+
+    # Juspay verify VPA
+    juspay_api_key: str = ""
+    juspay_merchant_id: str = ""
+
+    # Razorpay composite VPA validation
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_source_account: str = ""
+
+    # Paytm validate VPA
+    paytm_mid: str = ""
+    paytm_txn_token: str = ""
+    # Keyed by financial address type. Each value is a list of connectors.
+    # provider_codes ["*"] is used first. A named code is used only when there is no "*" entry.
     account_lookup_connectors: dict = {}

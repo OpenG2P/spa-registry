@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from ...models.beneficiary import G2PRegisterFinancialAddress
+
 
 @dataclass
 class LookupResult:
@@ -16,7 +18,7 @@ class AccountLookupConnector:
 
     name = "lookup"
 
-    def lookup(self, address, identifier: str) -> LookupResult:
+    def lookup(self, address: G2PRegisterFinancialAddress, identifier: str) -> LookupResult:
         """address is one G2PRegisterFinancialAddress row. identifier is the decrypted financial_address_identifier.
 
         The row column may still be ciphertext. A real UPI call looks like:
@@ -27,12 +29,7 @@ class AccountLookupConnector:
             address.details == {}
             identifier == "user2@okicici"
 
-        A real provider key is not on the row. The connector config names it with api_key_env,
-        and the worker reads that from a Secret:
-
-            api_key_env: JUSPAY_BASIC_TOKEN
-            headers:
-              Authorization: "Basic {api_key}"
+        A real provider key is not on the row. The connector reads it from Settings, for example settings.account_lookup_api_key.
         """
         raise NotImplementedError
 

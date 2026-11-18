@@ -7,7 +7,7 @@ from ...config import Settings
 from ...crypto import decrypt_identifier
 from ...register_domain.models.account_validation_queue import AccountLookupQueue
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
-from ...register_domain.services.account_lookup import LookupResult, connector_for, name_match
+from ...register_domain.services.account_lookup import ConnectorFactory, LookupResult, name_match
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -42,7 +42,7 @@ def _process_lookups(session, lookup_ids: list[str]) -> None:
         if address is None or address.record_status != "ACTIVE":
             _finish_queue(row, "CANCELLED", None, error="address is missing or inactive")
             continue
-        connector = connector_for(address.financial_address_type, address.provider_code, settings)
+        connector = ConnectorFactory.get(address.financial_address_type, address.provider_code, settings)
         if connector is None:
             address.account_validation_status = "NOT_APPLICABLE"
             address.account_validation_next_date = None
@@ -96,6 +96,7 @@ def _apply_result(row, address, result: LookupResult, settings) -> None:
         address.account_validation_next_date = None
         return
     backoff = int(getattr(settings, "account_lookup_retry_backoff_minutes", 60) or 60)
+    row.attempt_no = int(row.attempt_no or 1) + 1
     row.status = "PENDING"
     row.result = "ERROR"
     row.next_attempt_at = now + timedelta(minutes=backoff)
