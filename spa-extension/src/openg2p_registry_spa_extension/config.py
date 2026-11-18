@@ -21,3 +21,17 @@ class Settings(CoreSettings):
     financial_address_hash_key_version: int = 1
     default_phone_region: str = "IN"
     allow_unseen_upi_provider: bool = False
+    account_validation_beat_seconds: int = 60
+    account_lookup_beat_seconds: int = 30
+    account_lookup_stale_retry_beat_seconds: int = 300
+    account_lookup_batch_size: int = 200
+    account_lookup_max_attempts: int = 3
+    account_lookup_retry_backoff_minutes: int = 60
+    account_lookup_stale_minutes: int = 30
+    account_validation_chunk_size: int = 100
+    account_validation_revalidation_days: int = 365
+    # Worker Secret env REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY. Not stored in the connector map.
+    account_lookup_api_key: str = ""
+    # Keyed by financial address type, or by "TYPE:PROVIDER_CODE" when that
+    # provider needs its own request body. A missing url means no connector.
+    account_lookup_connectors: dict = {}
