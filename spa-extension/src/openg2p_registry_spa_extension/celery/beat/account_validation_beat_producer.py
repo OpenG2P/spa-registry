@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
-from ..helper import LOOKUP_TYPES
+from ..helper import LookupAddressType
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -50,7 +50,7 @@ def _claim_due_addresses(session, limit: int) -> list[str]:
             select(G2PRegisterFinancialAddress)
             .where(
                 G2PRegisterFinancialAddress.record_status == "ACTIVE",
-                G2PRegisterFinancialAddress.financial_address_type.in_(LOOKUP_TYPES),
+                G2PRegisterFinancialAddress.financial_address_type.in_(LookupAddressType),
                 G2PRegisterFinancialAddress.account_validation_status.in_(("UNVERIFIED", "VERIFIED")),
                 G2PRegisterFinancialAddress.account_validation_next_date.is_not(None),
                 G2PRegisterFinancialAddress.account_validation_next_date <= today,

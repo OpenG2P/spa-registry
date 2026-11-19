@@ -54,3 +54,14 @@ class Settings(CoreSettings):
     # Keyed by financial address type. Each value is a list of connectors.
     # provider_codes ["*"] is used first. A named code is used only when there is no "*" entry.
     account_lookup_connectors: dict = {}
+
+    # Penny drop through the G2P Bridge partner API.
+    penny_drop_beat_seconds: int = 60
+    penny_drop_dispatch_beat_seconds: int = 30
+    penny_drop_confirmation_beat_seconds: int = 60
+    penny_drop_stale_retry_beat_seconds: int = 300
+    penny_drop_amount: float = 1.0
+    penny_drop_poll_minutes: int = 5
+    g2p_bridge_partner_url: str = ""
+    g2p_bridge_sender_id: str = "spa-registry"
+    g2p_bridge_program_mnemonic: str = "ACCOUNT-VALIDATION"

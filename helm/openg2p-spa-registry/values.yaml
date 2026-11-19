@@ -103,6 +103,9 @@ registry:
           name: '{{ .Release.Name }}-paytm-secret'
           key: txn-token
           optional: true
+      REGISTRY_EXTENSIONS_G2P_BRIDGE_PARTNER_URL: http://g2p-bridge-api
+      REGISTRY_EXTENSIONS_G2P_BRIDGE_SENDER_ID: spa-registry
+      REGISTRY_EXTENSIONS_G2P_BRIDGE_PROGRAM_MNEMONIC: ACCOUNT-VALIDATION
   celeryBeat:
     image:
       repository: openg2p/openg2p-spa-registry-celery

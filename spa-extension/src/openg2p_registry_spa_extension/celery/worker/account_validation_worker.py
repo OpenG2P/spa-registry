@@ -9,7 +9,7 @@ from ...config import Settings
 from ...register_domain.models.account_validation_queue import AccountLookupQueue
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
 from ...register_domain.services.account_lookup import ConnectorFactory
-from ..helper import OPEN_QUEUE_STATUSES
+from ..helper import OpenQueueStatus
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -50,7 +50,7 @@ def _enqueue_lookups(session, fa_ids: list[str]) -> None:
         open_row = session.execute(
             select(AccountLookupQueue.lookup_id).where(
                 AccountLookupQueue.fa_internal_record_id == fa_id,
-                AccountLookupQueue.status.in_(OPEN_QUEUE_STATUSES),
+                AccountLookupQueue.status.in_(OpenQueueStatus),
             )
         ).first()
         if open_row is not None:

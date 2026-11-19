@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from ...config import Settings
 from ...register_domain.models.account_validation_queue import AccountLookupQueue
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
-from ..helper import LOOKUP_TYPES, OPEN_QUEUE_STATUSES
+from ..helper import LookupAddressType, OpenQueueStatus
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -58,7 +58,7 @@ def _reset_stale(session, stale_minutes: int) -> None:
         session.execute(
             select(G2PRegisterFinancialAddress.internal_record_id).where(
                 G2PRegisterFinancialAddress.account_validation_status == "PENDING",
-                G2PRegisterFinancialAddress.financial_address_type.in_(LOOKUP_TYPES),
+                G2PRegisterFinancialAddress.financial_address_type.in_(LookupAddressType),
             )
         )
         .scalars()
@@ -69,7 +69,7 @@ def _reset_stale(session, stale_minutes: int) -> None:
             session.execute(
                 select(AccountLookupQueue.fa_internal_record_id).where(
                     AccountLookupQueue.fa_internal_record_id.in_(pending_ids),
-                    AccountLookupQueue.status.in_(OPEN_QUEUE_STATUSES),
+                    AccountLookupQueue.status.in_(OpenQueueStatus),
                 )
             )
             .scalars()
