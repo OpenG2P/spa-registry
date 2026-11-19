@@ -4,7 +4,7 @@ from sqlalchemy import event, inspect as sa_inspect
 from sqlalchemy.orm.attributes import get_history
 
 from ...config import Settings
-from ...handlers import HANDLERS
+from ...handlers import HandlerName
 from .prepare import apply_encryption, initial_validation_status, prepare
 
 _logger = logging.getLogger("g2p-register-domain-service")
@@ -103,7 +103,7 @@ def _before_save(mapper, connection, target):
     if type_row is None:
         return
     unknown = type_row.get("handler")
-    if unknown and unknown not in HANDLERS:
+    if unknown and unknown not in HandlerName:
         _logger.warning("Unknown handler %s", unknown)
     record = {
         "financial_address_identifier": target.financial_address_identifier,

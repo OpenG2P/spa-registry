@@ -9,7 +9,7 @@ _config = Settings.get_config()
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_registry_core.app import Initializer as CoreInitializer
 
-from .handlers import HANDLERS
+from .handlers import HandlerName
 from .register_domain.models import (
     AccountLookupQueue,
     G2PIntakeFormBeneficiary,
@@ -36,7 +36,7 @@ class Initializer(BaseInitializer):
     def initialize(self, **kwargs):
         super().initialize()
         CoreInitializer().initialize()
-        _logger.info("SPA handlers registered: %s", ", ".join(sorted(HANDLERS)))
+        _logger.info("SPA handlers registered: %s", ", ".join(sorted(handler.value for handler in HandlerName)))
         G2PRegisterDomainServiceBeneficiary()
         G2PRegisterDomainServiceFinancialAddress()
         install_persistence_hooks()
