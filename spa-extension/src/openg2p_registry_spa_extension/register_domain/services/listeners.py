@@ -121,8 +121,11 @@ def _before_save(mapper, connection, target):
     target.financial_address_identifier_hash = prepared["financial_address_identifier_hash"]
     target.hash_key_version = prepared["hash_key_version"]
     target.provider_code = prepared.get("provider_code")
-    if not str(getattr(target, "financial_address_name", None) or "").strip():
-        target.financial_address_name = _beneficiary_record_name(connection, target) or None
+    beneficiary_name = _beneficiary_record_name(connection, target)
+    if beneficiary_name:
+        target.financial_address_name = beneficiary_name
+    elif not str(getattr(target, "financial_address_name", None) or "").strip():
+        target.financial_address_name = None
     if target.financial_address_name:
         target.record_name = target.financial_address_name
     status = getattr(target, "record_status", None) or "ACTIVE"
@@ -134,14 +137,74 @@ def _before_save(mapper, connection, target):
         target.account_validation_next_date = next_date
 
 
+def _beneficiary_name(target) -> str:
+    joined = " ".join(
+        part
+        for part in (
+            str(getattr(target, "first_name", None) or "").strip(),
+            str(getattr(target, "last_name", None) or "").strip(),
+        )
+        if part
+    )
+    record = str(getattr(target, "record_name", None) or "").strip()
+    if get_history(target, "first_name").has_changes() or get_history(target, "last_name").has_changes():
+        return joined or record
+    return record or joined
+
+
+def _beneficiary_name_changed(target) -> bool:
+    if not sa_inspect(target).persistent:
+        return False
+    return any(get_history(target, field).has_changes() for field in ("record_name", "first_name", "last_name"))
+
+
+def _sync_address_names(mapper, connection, target) -> None:
+    if not _beneficiary_name_changed(target):
+        return
+    named = _beneficiary_name(target)
+    if not named:
+        return
+    link = str(getattr(target, "internal_record_id", None) or "").strip()
+    if not link:
+        return
+    from sqlalchemy import text
+    from sqlalchemy.orm import object_session
+
+    from ..models.beneficiary import G2PIntakeFormFinancialAddress, G2PRegisterFinancialAddress
+
+    session = object_session(target)
+    if session is not None:
+        for obj in list(session.new) + list(session.identity_map.values()):
+            if isinstance(obj, (G2PRegisterFinancialAddress, G2PIntakeFormFinancialAddress)) and str(
+                getattr(obj, "link_internal_record_id", "") or ""
+            ) == link:
+                obj.financial_address_name = named
+                obj.record_name = named
+    for table in ("g2p_register_financial_address", "g2p_intake_form_financial_address"):
+        connection.execute(
+            text(
+                f"UPDATE {table} SET financial_address_name = :name, record_name = :name "
+                "WHERE link_internal_record_id = :id"
+            ),
+            {"name": named, "id": link},
+        )
+
+
 def install_persistence_hooks() -> None:
     global _wired
     if _wired:
         return
-    from ..models.beneficiary import G2PIntakeFormFinancialAddress, G2PRegisterFinancialAddress
+    from ..models.beneficiary import (
+        G2PIntakeFormBeneficiary,
+        G2PIntakeFormFinancialAddress,
+        G2PRegisterBeneficiary,
+        G2PRegisterFinancialAddress,
+    )
 
     event.listen(G2PRegisterFinancialAddress, "before_insert", _before_save)
     event.listen(G2PRegisterFinancialAddress, "before_update", _before_save)
     event.listen(G2PIntakeFormFinancialAddress, "before_insert", _before_save)
     event.listen(G2PIntakeFormFinancialAddress, "before_update", _before_save)
+    event.listen(G2PRegisterBeneficiary, "before_update", _sync_address_names)
+    event.listen(G2PIntakeFormBeneficiary, "before_update", _sync_address_names)
     _wired = True
