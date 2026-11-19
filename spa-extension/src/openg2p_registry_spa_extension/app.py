@@ -21,7 +21,8 @@ from .register_domain.models import (
     G2PRegisterHistoryBeneficiary,
     G2PRegisterHistoryBeneficiaryId,
     G2PRegisterHistoryFinancialAddress,
-    PennyDropQueue,
+    PennyDropEnvelopeQueue,
+    PennyDropInstructionQueue,
 )
 from .register_domain.services import (
     G2PRegisterDomainServiceBeneficiary,
@@ -44,7 +45,8 @@ class Initializer(BaseInitializer):
     def migrate_database(self, args):
         async def migrate():
             _logger.info("Migrating SPA registry tables")
-            await PennyDropQueue.create_migrate()
+            await PennyDropEnvelopeQueue.create_migrate()
+            await PennyDropInstructionQueue.create_migrate()
             await AccountLookupQueue.create_migrate()
             await G2PRegisterBeneficiary.create_migrate()
             await G2PRegisterHistoryBeneficiary.create_migrate()

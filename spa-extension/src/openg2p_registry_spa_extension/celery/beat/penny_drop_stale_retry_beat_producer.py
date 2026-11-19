@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
-from ...register_domain.models.account_validation_queue import PennyDropQueue
+from ...register_domain.models.account_validation_queue import PennyDropInstructionQueue
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
 from ..helper import OpenQueueStatus, PennyDropAddressType
 
@@ -41,10 +41,10 @@ def _reset_stale(session, stale_minutes: int) -> None:
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=stale_minutes)
     rows = (
         session.execute(
-            select(PennyDropQueue).where(
-                PennyDropQueue.status == "PROCESSING",
-                PennyDropQueue.updated_at.is_not(None),
-                PennyDropQueue.updated_at < cutoff,
+            select(PennyDropInstructionQueue).where(
+                PennyDropInstructionQueue.status == "PROCESSING",
+                PennyDropInstructionQueue.updated_at.is_not(None),
+                PennyDropInstructionQueue.updated_at < cutoff,
             )
         )
         .scalars()
@@ -69,9 +69,9 @@ def _reset_stale(session, stale_minutes: int) -> None:
     if pending_ids:
         open_ids = set(
             session.execute(
-                select(PennyDropQueue.fa_internal_record_id).where(
-                    PennyDropQueue.fa_internal_record_id.in_(pending_ids),
-                    PennyDropQueue.status.in_(OpenQueueStatus),
+                select(PennyDropInstructionQueue.fa_internal_record_id).where(
+                    PennyDropInstructionQueue.fa_internal_record_id.in_(pending_ids),
+                    PennyDropInstructionQueue.status.in_(OpenQueueStatus),
                 )
             )
             .scalars()

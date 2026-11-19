@@ -1,13 +1,13 @@
-"""Claim penny-drop rows that have not been sent to Bridge yet."""
+"""Claim envelopes whose disbursements have not been sent yet."""
 
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
-from ...register_domain.models.account_validation_queue import PennyDropQueue
+from ...register_domain.models.account_validation_queue import PennyDropEnvelopeQueue
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -28,11 +28,11 @@ def register(celery_app) -> None:
             return
         session_maker = sessionmaker(bind=engine, expire_on_commit=False)
         with session_maker() as session:
-            claimed = _claim_unsent(session, int(spa_settings.account_validation_chunk_size or 100))
-        if claimed:
+            claimed = _claim_ready(session)
+        for envelope_queue_id in claimed:
             celery_app.send_task(
-                "penny_drop_worker",
-                args=(claimed,),
+                "penny_drop_disbursement_worker",
+                args=([envelope_queue_id],),
                 queue=beat_config.worker_queue,
             )
 
@@ -43,20 +43,15 @@ def register(celery_app) -> None:
     _ = penny_drop_dispatch_beat_producer
 
 
-def _claim_unsent(session, limit: int) -> list[str]:
+def _claim_ready(session) -> list[str]:
     now = datetime.now(timezone.utc)
     rows = (
         session.execute(
-            select(PennyDropQueue)
+            select(PennyDropEnvelopeQueue)
             .where(
-                PennyDropQueue.status == "PENDING",
-                PennyDropQueue.envelope_id.is_(None),
-                or_(
-                    PennyDropQueue.confirm_after.is_(None),
-                    PennyDropQueue.confirm_after <= now,
-                ),
+                PennyDropEnvelopeQueue.status == "DISBURSEMENT_PENDING",
+                PennyDropEnvelopeQueue.envelope_id.is_not(None),
             )
-            .limit(limit)
             .with_for_update(skip_locked=True)
         )
         .scalars()
@@ -66,6 +61,6 @@ def _claim_unsent(session, limit: int) -> list[str]:
     for row in rows:
         row.status = "PROCESSING"
         row.updated_at = now
-        claimed.append(row.attempt_id)
+        claimed.append(row.id)
     session.commit()
     return claimed

@@ -92,6 +92,22 @@ def retry(row, address, settings, error: str) -> None:
     row.confirm_after = now + timedelta(minutes=int(settings.penny_drop_poll_minutes or 5))
 
 
+def instructions_for(session, envelope_queue_id: str) -> list:
+    from sqlalchemy import select
+
+    from ...register_domain.models.account_validation_queue import PennyDropInstructionQueue
+
+    return (
+        session.execute(
+            select(PennyDropInstructionQueue).where(
+                PennyDropInstructionQueue.envelope_queue_id == envelope_queue_id
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
 def finish(row, status: str, error: str) -> None:
     row.status = status
     row.last_error = error

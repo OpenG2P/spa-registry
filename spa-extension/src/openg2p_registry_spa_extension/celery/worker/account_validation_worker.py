@@ -2,7 +2,7 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
@@ -66,11 +66,16 @@ def _enqueue_lookups(session, fa_ids: list[str]) -> None:
             address.account_validation_next_date = None
             continue
         now = datetime.now(timezone.utc)
+        previous = session.execute(
+            select(func.count())
+            .select_from(AccountLookupQueue)
+            .where(AccountLookupQueue.fa_internal_record_id == fa_id)
+        ).scalar_one()
         session.add(
             AccountLookupQueue(
                 lookup_id=f"LK-{uuid.uuid4().hex}",
                 fa_internal_record_id=fa_id,
-                attempt_no=1,
+                attempt_no=int(previous or 0) + 1,
                 status="PENDING",
                 connector=connector.name,
                 next_attempt_at=now,

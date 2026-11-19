@@ -7,7 +7,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
-from ...register_domain.models.account_validation_queue import PennyDropQueue
+from ...register_domain.models.account_validation_queue import PennyDropInstructionQueue
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -47,13 +47,14 @@ def _claim_sent(session, limit: int) -> list[str]:
     now = datetime.now(timezone.utc)
     rows = (
         session.execute(
-            select(PennyDropQueue)
+            select(PennyDropInstructionQueue)
             .where(
-                PennyDropQueue.status == "PENDING",
-                PennyDropQueue.envelope_id.is_not(None),
+                PennyDropInstructionQueue.status == "PENDING",
+                PennyDropInstructionQueue.envelope_id.is_not(None),
+                PennyDropInstructionQueue.sent_at.is_not(None),
                 or_(
-                    PennyDropQueue.confirm_after.is_(None),
-                    PennyDropQueue.confirm_after <= now,
+                    PennyDropInstructionQueue.confirm_after.is_(None),
+                    PennyDropInstructionQueue.confirm_after <= now,
                 ),
             )
             .limit(limit)

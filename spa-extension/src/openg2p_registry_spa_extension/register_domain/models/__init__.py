@@ -1,4 +1,8 @@
-from .account_validation_queue import AccountLookupQueue, PennyDropQueue
+from .account_validation_queue import (
+    AccountLookupQueue,
+    PennyDropEnvelopeQueue,
+    PennyDropInstructionQueue,
+)
 from .beneficiary import (
     G2PIntakeFormBeneficiary,
     G2PIntakeFormBeneficiaryId,

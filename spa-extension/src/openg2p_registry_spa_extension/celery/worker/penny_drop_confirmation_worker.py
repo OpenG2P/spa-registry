@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy.orm import sessionmaker
 
 from ...config import Settings
-from ...register_domain.models.account_validation_queue import PennyDropQueue
+from ...register_domain.models.account_validation_queue import PennyDropInstructionQueue
 from ...register_domain.models.beneficiary import G2PRegisterFinancialAddress
 from ...register_domain.services.account_lookup import name_match
 from .penny_drop_bridge import find, finish, post, request_body, retry
@@ -37,7 +37,7 @@ def register(celery_app) -> None:
 def _process(session, attempt_ids: list[str]) -> None:
     settings = Settings.get_config(strict=True)
     for attempt_id in attempt_ids:
-        row = session.get(PennyDropQueue, attempt_id)
+        row = session.get(PennyDropInstructionQueue, attempt_id)
         if row is None or row.status != "PROCESSING" or not row.envelope_id:
             continue
         address = session.get(G2PRegisterFinancialAddress, row.fa_internal_record_id)
@@ -54,7 +54,7 @@ def _process(session, attempt_ids: list[str]) -> None:
 
 def _poll_drop(row, address, settings) -> None:
     base = str(settings.g2p_bridge_partner_url or "").rstrip("/")
-    body = request_body(settings, {"request_payload": [row.run_id]})
+    body = request_body(settings, {"request_payload": [row.disbursement_id]})
     payload = post(settings, f"{base}/get_disbursement_status", body)
     name = find(payload, "beneficiary_name_from_bank")
     reversed_count = find(payload, "number_of_disbursements_reversed")
