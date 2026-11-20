@@ -1,0 +1,256 @@
+# SPA Registry — values overlay for the openg2p-registry chart.
+#
+# This chart has no templates; it deploys the openg2p-registry subchart (pinned
+# in Chart.yaml, aliased `registry`) with the overrides below. Install:
+#
+#     helm repo add openg2p https://openg2p.github.io/openg2p-helm
+#     helm dependency build ./helm/openg2p-spa-registry
+#     helm install spa-registry ./helm/openg2p-spa-registry
+#
+# Two kinds of override:
+#   * global.*    — Helm propagates these to the subchart (and its subcharts).
+#   * registry.*  — values for the openg2p-registry subchart itself.
+# Everything not set here (all service wiring, keycloak/iam, db-seed machinery,
+# id-generator, demo users) is inherited from the subchart defaults.
+
+# ── Globals (propagate to the openg2p-registry subchart) ──────────────────────
+global:
+  registryVariant: 'spa-registry'
+  # Ingress host for this registry. Overrides the subchart's generic default.
+  registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+
+# ── openg2p-registry subchart overrides ───────────────────────────────────────
+registry:
+  
+  # Built staff-ui image from ui/staff-ui (upstream + overrides/)
+  staffUi:
+    image:
+      repository: openg2p/openg2p-spa-registry-staff-ui
+      tag: 0.0.0-develop
+
+  # Farmer-built images (each FROM the matching openg2p-registry base image).
+  # CI rewrites these tags to the freshly built farmer version (lockstep); the
+  # base image they extend is pinned by the openg2p-registry dependency version.
+  staffApi:
+    image:
+      repository: openg2p/openg2p-spa-registry-staff-api
+      tag: 0.0.0-develop
+    envVars:
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_ENCRYPTION_AT_REST: "false"
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_ENCRYPTION_KEY: ""
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_HASH_KEY: spa-dev-hash-key
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_HASH_KEY_VERSION: "1"
+      REGISTRY_EXTENSIONS_DEFAULT_PHONE_REGION: IN
+      REGISTRY_EXTENSIONS_ALLOW_UNSEEN_UPI_PROVIDER: "false"
+      REGISTRY_STAFF_PORTAL_API_AUTH_OIDC_CLIENT_ID: staff-portal
+      REGISTRY_STAFF_PORTAL_API_AUTH_OIDC_CLIENT_SECRET:
+        secretKeyRef:
+          name: staff-portal
+          key: client_secret
+  partnerApi:
+    image:
+      repository: openg2p/openg2p-spa-registry-partner-api
+      tag: 0.0.0-develop
+  celeryWorker:
+    image:
+      repository: openg2p/openg2p-spa-registry-celery
+      tag: 0.0.0-develop
+    envVars:
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_CONNECTORS:
+        configMapKeyRef:
+          name: '{{ .Release.Name }}-account-lookup'
+          key: connectors.json
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_API_KEY:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-account-lookup-secret'
+          key: api-key
+      REGISTRY_EXTENSIONS_PAYU_MERCHANT_KEY:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-payu-secret'
+          key: merchant-key
+          optional: true
+      REGISTRY_EXTENSIONS_PAYU_SALT:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-payu-secret'
+          key: salt
+          optional: true
+      REGISTRY_EXTENSIONS_JUSPAY_API_KEY:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-juspay-secret'
+          key: api-key
+          optional: true
+      REGISTRY_EXTENSIONS_JUSPAY_MERCHANT_ID:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-juspay-secret'
+          key: merchant-id
+          optional: true
+      REGISTRY_EXTENSIONS_RAZORPAY_KEY_ID:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-razorpay-secret'
+          key: key-id
+          optional: true
+      REGISTRY_EXTENSIONS_RAZORPAY_KEY_SECRET:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-razorpay-secret'
+          key: key-secret
+          optional: true
+      REGISTRY_EXTENSIONS_RAZORPAY_SOURCE_ACCOUNT:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-razorpay-secret'
+          key: source-account
+          optional: true
+      REGISTRY_EXTENSIONS_PAYTM_MID:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-paytm-secret'
+          key: mid
+          optional: true
+      REGISTRY_EXTENSIONS_PAYTM_TXN_TOKEN:
+        secretKeyRef:
+          name: '{{ .Release.Name }}-paytm-secret'
+          key: txn-token
+          optional: true
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_ENCRYPTION_AT_REST: "false"
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_ENCRYPTION_KEY: ""
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_HASH_KEY: spa-dev-hash-key
+      REGISTRY_EXTENSIONS_FINANCIAL_ADDRESS_HASH_KEY_VERSION: "1"
+      REGISTRY_EXTENSIONS_DEFAULT_PHONE_REGION: IN
+      REGISTRY_EXTENSIONS_ALLOW_UNSEEN_UPI_PROVIDER: "false"
+      REGISTRY_EXTENSIONS_ACCOUNT_VALIDATION_BEAT_SECONDS: "60"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_BEAT_SECONDS: "30"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_STALE_RETRY_BEAT_SECONDS: "300"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_BATCH_SIZE: "200"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_MAX_ATTEMPTS: "3"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_RETRY_BACKOFF_MINUTES: "60"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_STALE_MINUTES: "30"
+      REGISTRY_EXTENSIONS_ACCOUNT_VALIDATION_CHUNK_SIZE: "100"
+      REGISTRY_EXTENSIONS_ACCOUNT_VALIDATION_REVALIDATION_DAYS: "365"
+      REGISTRY_EXTENSIONS_PENNY_DROP_BEAT_SECONDS: "60"
+      REGISTRY_EXTENSIONS_PENNY_DROP_DISPATCH_BEAT_SECONDS: "30"
+      REGISTRY_EXTENSIONS_PENNY_DROP_CONFIRMATION_BEAT_SECONDS: "60"
+      REGISTRY_EXTENSIONS_PENNY_DROP_STALE_RETRY_BEAT_SECONDS: "300"
+      REGISTRY_EXTENSIONS_PENNY_DROP_AMOUNT: "1.0"
+      REGISTRY_EXTENSIONS_PENNY_DROP_POLL_MINUTES: "5"
+      REGISTRY_EXTENSIONS_G2P_BRIDGE_PARTNER_URL: http://g2p-bridge-api
+      REGISTRY_EXTENSIONS_G2P_BRIDGE_SENDER_ID: spa-registry
+      REGISTRY_EXTENSIONS_G2P_BRIDGE_PROGRAM_MNEMONIC: ACCOUNT-VALIDATION
+  celeryBeat:
+    image:
+      repository: openg2p/openg2p-spa-registry-celery
+      tag: 0.0.0-develop
+    envVars:
+      REGISTRY_EXTENSIONS_ACCOUNT_VALIDATION_BEAT_SECONDS: "60"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_BEAT_SECONDS: "30"
+      REGISTRY_EXTENSIONS_ACCOUNT_LOOKUP_STALE_RETRY_BEAT_SECONDS: "300"
+      REGISTRY_EXTENSIONS_ACCOUNT_VALIDATION_CHUNK_SIZE: "100"
+      REGISTRY_EXTENSIONS_PENNY_DROP_BEAT_SECONDS: "60"
+      REGISTRY_EXTENSIONS_PENNY_DROP_DISPATCH_BEAT_SECONDS: "30"
+      REGISTRY_EXTENSIONS_PENNY_DROP_CONFIRMATION_BEAT_SECONDS: "60"
+      REGISTRY_EXTENSIONS_PENNY_DROP_STALE_RETRY_BEAT_SECONDS: "300"
+      REGISTRY_EXTENSIONS_PENNY_DROP_POLL_MINUTES: "5"
+      # TEMPORARY OVERRIDE of the platform chart default, pending the upstream fix.
+      # -Q celery is required, not cosmetic. This pod runs the scheduler AND the worker
+      # that executes the *_beat_producer tasks it emits; those are published to the
+      # default "celery" queue, and the celery-worker pod only consumes
+      # registry_worker_queue. Launched via run_celery.py's app.start(argv=...) with
+      # "worker --beat" and no -Q, the worker prints its banner and "ready" but never
+      # consumes a message: producer tasks pile up on "celery" forever (44k in 15h on
+      # qa), nothing reaches registry_worker_queue, and every periodic job silently
+      # stops — intake ingest, deduplication, completion scores, export, outgest. The
+      # visible symptom is db-seed failing with "row ... not ingested within 180s".
+      # Remove once the platform chart ships this default.
+      CELERY_OPTS: "worker --beat -Q celery --loglevel=info --schedule=/tmp/celery-beat-schedule.db"
+  dbSeed:
+    image:
+      repository: openg2p/openg2p-spa-registry-db-seed
+      tag: 0.0.0-develop
+    # The subchart defaults these OFF (minimal reference registry). Farmer ships
+    # demo records/geo/images, so turn the db-seed loaders on. NB these are
+    # `dbSeed.*`, not `global.*` — the db-seed Job reads .Values.dbSeed.load*
+    # and there is no global fallback, so setting them under global is inert.
+    loadGeoData: false
+    loadSampleData: false
+    loadImages: false
+    loadTemplates: false
+    intakeSeed:
+      submitUser: alex.carter
+      approver1: alex.carter
+      approver2: nina.patel
+      maxHouseholds: 25
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+
+  # Name of this registry's tile in IAM. The roles/permissions catalog itself is
+  # registry-agnostic and comes from the subchart.
+  iamRegister:
+    applicationDescription: "SPA Registry"
+    # Rancher skips Helm hooks. Null these so the Job/ConfigMap are regular
+    # resources (same as commons does for master-data / AWE / PM).
+    annotations: null
+    payloadAnnotations: null
+
+  # Functional-ID pools, one per register. The subchart defaults to the REFERENCE
+  # registry's registers (individual + household), so the farmer register must be
+  # declared here. NB Helm merges maps, so `individual` is inherited too and an
+  # unused pool is provisioned for it — harmless, and a parent `null` cannot
+  # remove a subchart default.
+  idgenerator:
+    idGenerator:
+      appConfig:
+        idTypes:
+          beneficiary:
+            idLength: 12
+
+  # beneApi is consumed as-is from the openg2p-registry base images
+  # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
+  # intentionally not overridden.
+
+  # ── Farmer e2e sanity suite (image built here; Set 2 field tests) ───────────
+  # The subchart ships the reference (Individual) sanity values; override them
+  # for the Farmer register. Behaviour toggles (runE2e/failOnError) keep the
+  # subchart defaults.
+  sanity:
+    enabled: true
+    image:
+      repository: openg2p/openg2p-spa-registry-sanity-tests
+      tag: 0.0.0-develop
+    regType: Beneficiary
+    regRecordType: 'spdci-extensions-dci:Beneficiary'
+    searchText: SANITY-SPA-0001
+    dataScopes: "beneficiary"
+    deniedScopes: ""
+    farmerRegisterId: a0000000-0000-4000-8000-000000000101
+    crTabId: "beneficiary_tab"
+    crSectionId: "beneficiary_identity_section"
+
+# One list per address type. The first provider_codes: ["*"] entry is used.
+# A named provider code is used only when that address type has no "*" entry.
+# Secret values are not in this file.
+accountLookupConnectors:
+  UPI-VPA-BANK-ACCOUNT:
+    - connector: http-json
+      provider_codes: ["*"]
+      url: https://example-validation.dev.openg2p.org/lookup/upi
+    - connector: payu
+      provider_codes: ["sbi", "axisbank"]
+      url: https://test.payu.in/merchant/postservice.php?form=2
+    - connector: juspay
+      provider_codes: ["hdfcbank", "icici"]
+      url: https://sandbox.juspay.in/v2/upi/verify-vpa
+    - connector: razorpay
+      provider_codes: ["okicici"]
+      url: https://api.razorpay.com/v1/fund_accounts/validations
+    - connector: paytm-vpa
+      provider_codes: ["paytm"]
+      url: https://securestage.paytmpayments.com/theia/api/v1/vpa/validate
+  MSISDN-WALLET:
+    - connector: http-json
+      provider_codes: ["*"]
+      url: https://example-validation.dev.openg2p.org/lookup/msisdn-wallet
+  MSISDN-BANK-ACCOUNT:
+    - connector: http-json
+      provider_codes: ["*"]
+      url: https://example-validation.dev.openg2p.org/lookup/msisdn-bank
